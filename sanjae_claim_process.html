@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+    background: var(--bg-primary, #f8f9fa);
+    color: var(--text-primary, #1a1a1a);
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  h2.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
+
+  /* Tab Nav */
+  .tabs { display: flex; background: var(--bg-secondary, #fff); border-bottom: 2px solid #e5e7eb; padding: 0 16px; gap: 4px; position: sticky; top: 0; z-index: 10; }
+  .tab {
+    padding: 10px 16px; cursor: pointer; font-size: 12px; font-weight: 600;
+    border-bottom: 3px solid transparent; margin-bottom: -2px;
+    color: var(--text-secondary, #6b7280); transition: all 0.15s; border-radius: 4px 4px 0 0;
+  }
+  .tab:hover { color: #2563eb; background: #eff6ff; }
+  .tab.active { color: #2563eb; border-bottom-color: #2563eb; }
+
+  /* Panels */
+  .panel { display: none; padding: 16px; max-width: 900px; margin: 0 auto; }
+  .panel.active { display: block; }
+
+  /* Flow Steps */
+  .flow { display: flex; flex-direction: column; gap: 0; }
+  .step-wrap { display: flex; align-items: flex-start; gap: 12px; position: relative; }
+  .step-line { display: flex; flex-direction: column; align-items: center; min-width: 32px; }
+  .step-num {
+    width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 13px; flex-shrink: 0; color: #fff;
+  }
+  .step-connector { width: 2px; flex: 1; min-height: 20px; background: #d1d5db; }
+  .step-body { flex: 1; padding-bottom: 20px; }
+  .step-title { font-weight: 700; font-size: 14px; margin-bottom: 6px; margin-top: 4px; }
+  .step-sub { color: var(--text-secondary, #6b7280); font-size: 12px; margin-bottom: 8px; }
+
+  /* Cards */
+  .card { background: var(--bg-secondary, #fff); border-radius: 8px; border: 1px solid #e5e7eb; padding: 12px 14px; margin-bottom: 8px; }
+  .card-title { font-weight: 700; font-size: 12px; color: #374151; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+
+  /* Doc list */
+  .doc-list { list-style: none; }
+  .doc-list li { padding: 3px 0; padding-left: 14px; position: relative; color: #374151; font-size: 12px; }
+  .doc-list li::before { content: "•"; position: absolute; left: 2px; color: #9ca3af; }
+
+  /* Benefit Grid */
+  .benefit-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
+  .benefit-card {
+    background: var(--bg-secondary, #fff); border-radius: 8px; border: 1px solid #e5e7eb;
+    padding: 12px; cursor: pointer; transition: all 0.15s;
+  }
+  .benefit-card:hover { border-color: #2563eb; box-shadow: 0 2px 8px rgba(37,99,235,0.1); }
+  .benefit-card.active { border-color: #2563eb; background: #eff6ff; }
+  .benefit-icon { font-size: 22px; margin-bottom: 6px; }
+  .benefit-name { font-weight: 700; font-size: 13px; margin-bottom: 3px; }
+  .benefit-short { font-size: 11px; color: var(--text-secondary, #6b7280); }
+  .benefit-detail { margin-top: 14px; background: var(--bg-secondary, #fff); border-radius: 8px; border: 1px solid #2563eb; padding: 14px; display: none; }
+  .benefit-detail.active { display: block; }
+
+  /* Appeal flow */
+  .appeal-flow { display: flex; align-items: center; flex-wrap: wrap; gap: 0; }
+  .appeal-step { background: var(--bg-secondary, #fff); border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px 14px; flex: 1; min-width: 120px; }
+  .appeal-arrow { color: #9ca3af; font-size: 18px; padding: 0 6px; }
+  .appeal-step-title { font-weight: 700; font-size: 12px; margin-bottom: 3px; }
+  .appeal-step-deadline { font-size: 11px; color: #ef4444; font-weight: 600; }
+  .appeal-step-desc { font-size: 11px; color: var(--text-secondary, #6b7280); margin-top: 3px; }
+
+  /* Diff Table */
+  .diff-tabs { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+  .diff-tab {
+    padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer;
+    border: 1.5px solid #e5e7eb; background: var(--bg-secondary, #fff); color: #374151; transition: all 0.15s;
+  }
+  .diff-tab:hover { border-color: #2563eb; color: #2563eb; }
+  .diff-tab.active { background: #2563eb; color: #fff; border-color: #2563eb; }
+  .diff-panel { display: none; }
+  .diff-panel.active { display: block; }
+
+  .compare-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .compare-table th { background: #f3f4f6; padding: 8px 10px; text-align: left; font-weight: 700; border: 1px solid #e5e7eb; }
+  .compare-table td { padding: 8px 10px; border: 1px solid #e5e7eb; vertical-align: top; }
+  .compare-table tr:nth-child(even) td { background: #fafafa; }
+
+  .notice { background: #fef3c7; border-left: 3px solid #f59e0b; border-radius: 4px; padding: 8px 12px; font-size: 12px; margin-top: 10px; color: #78350f; }
+  .notice-red { background: #fef2f2; border-left-color: #ef4444; color: #7f1d1d; }
+  .notice-blue { background: #eff6ff; border-left-color: #2563eb; color: #1e3a5f; }
+  .notice-green { background: #f0fdf4; border-left-color: #22c55e; color: #14532d; }
+
+  /* Step colors */
+  .c1 { background: #2563eb; }
+  .c2 { background: #7c3aed; }
+  .c3 { background: #059669; }
+  .c4 { background: #d97706; }
+  .c5 { background: #dc2626; }
+
+  .section-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #9ca3af; margin: 14px 0 8px; }
+
+  .row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .col { flex: 1; min-width: 200px; }
+
+  .badge { display: inline-block; padding: 1px 7px; border-radius: 10px; font-size: 10px; font-weight: 700; margin-left: 6px; }
+  .badge-blue { background: #dbeafe; color: #1d4ed8; }
+  .badge-green { background: #d1fae5; color: #065f46; }
+  .badge-red { background: #fee2e2; color: #991b1b; }
+  .badge-yellow { background: #fef9c3; color: #713f12; }
+  .badge-purple { background: #ede9fe; color: #5b21b6; }
+</style>
+</head>
+<body>
+
+<h2 class="sr-only">산업재해 신청 절차 전체 안내 - 단계별 서류, 급여 종류, 불복 절차, 대상별 차이점</h2>
+
+<div class="tabs">
+  <div class="tab active" onclick="showTab('flow')">📋 신청 절차</div>
+  <div class="tab" onclick="showTab('benefit')">💰 급여 종류</div>
+  <div class="tab" onclick="showTab('appeal')">⚖️ 불복 절차</div>
+  <div class="tab" onclick="showTab('diff')">👥 대상별 차이</div>
+</div>
+
+<!-- ====== PANEL 1: 신청 절차 ====== -->
+<div id="panel-flow" class="panel active">
+  <div class="flow">
+
+    <!-- STEP 1 -->
+    <div class="step-wrap">
+      <div class="step-line">
+        <div class="step-num c1">1</div>
+        <div class="step-connector"></div>
+      </div>
+      <div class="step-body">
+        <div class="step-title">재해 발생 즉시</div>
+        <div class="step-sub">사고 발생 → 증거 확보 → 산재 지정 병원 치료</div>
+        <div class="row">
+          <div class="col">
+            <div class="card">
+              <div class="card-title">🏥 치료 기관</div>
+              <ul class="doc-list">
+                <li>반드시 <b>산재 지정 의료기관</b>에서 치료</li>
+                <li>일반 병원도 가능하나 산재 지정 여부 확인 필요</li>
+                <li>응급 시 비지정 병원 치료 후 전원 가능</li>
+              </ul>
+            </div>
+          </div>
+          <div class="col">
+            <div class="card">
+              <div class="card-title">📸 증거 확보</div>
+              <ul class="doc-list">
+                <li>사고 현장 사진·동영상</li>
+                <li>CCTV 영상 (시간 지나면 삭제됨 — 즉시 보전 요청)</li>
+                <li>목격자 연락처 확보</li>
+                <li>작업 지시서, 근무일지 등</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 2 -->
+    <div class="step-wrap">
+      <div class="step-line">
+        <div class="step-num c2">2</div>
+        <div class="step-connector"></div>
+      </div>
+      <div class="step-body">
+        <div class="step-title">요양급여 신청 <span class="badge badge-blue">치료비</span></div>
+        <div class="step-sub">근로복지공단 지사 방문 또는 온라인(토탈서비스) 접수</div>
+        <div class="card">
+          <div class="card-title">📄 필요 서류</div>
+          <div class="row">
+            <div class="col">
+              <div class="section-title">필수</div>
+              <ul class="doc-list">
+                <li>요양급여신청서 (공단 서식)</li>
+                <li>초진소견서 (의료기관 발급)</li>
+                <li>재해경위서 + 사업주 확인 서명</li>
+              </ul>
+            </div>
+            <div class="col">
+              <div class="section-title">직업성 질병 추가</div>
+              <ul class="doc-list">
+                <li>작업환경측정결과서</li>
+                <li>건강진단결과서</li>
+                <li>유해물질 노출 이력</li>
+              </ul>
+            </div>
+          </div>
+          <div class="notice notice-blue" style="margin-top:8px;">💡 사업주가 확인 서명을 거부해도 신청 가능합니다. 거부 사실을 기재하여 제출.</div>
+        </div>
+        <div class="card">
+          <div class="card-title">⏱ 처리 흐름</div>
+          <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; font-size:12px;">
+            <div style="background:#eff6ff;border-radius:6px;padding:6px 10px;">접수</div>
+            <span style="color:#9ca3af">→</span>
+            <div style="background:#f3f4f6;border-radius:6px;padding:6px 10px;">사고성 재해<br><span style="font-size:10px;color:#6b7280">자문의 소견</span></div>
+            <div style="background:#f3f4f6;border-radius:6px;padding:6px 10px;">직업성 질병<br><span style="font-size:10px;color:#6b7280">업무상질병판정위원회</span></div>
+            <span style="color:#9ca3af">→</span>
+            <div style="background:#d1fae5;border-radius:6px;padding:6px 10px;color:#065f46;font-weight:700;">7일 이내 결정 통보</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 3 -->
+    <div class="step-wrap">
+      <div class="step-line">
+        <div class="step-num c3">3</div>
+        <div class="step-connector"></div>
+      </div>
+      <div class="step-body">
+        <div class="step-title">요양 중 추가 급여 신청</div>
+        <div class="step-sub">치료 기간 중 생계·간병 지원 급여</div>
+        <div class="row">
+          <div class="col">
+            <div class="card">
+              <div class="card-title">💸 휴업급여 <span class="badge badge-green">생계지원</span></div>
+              <ul class="doc-list">
+                <li>휴업급여청구서</li>
+                <li>요양기간 확인서 (의료기관)</li>
+                <li>평균임금 산정 관련 서류</li>
+              </ul>
+              <div style="margin-top:6px;font-size:11px;color:#059669;font-weight:600;">→ 평균임금의 70% 지급</div>
+            </div>
+          </div>
+          <div class="col">
+            <div class="card">
+              <div class="card-title">🛏 간병급여</div>
+              <ul class="doc-list">
+                <li>간병급여청구서</li>
+                <li>간병 필요성 확인 의사소견서</li>
+              </ul>
+              <div style="margin-top:6px;font-size:11px;color:#6b7280;">상시·수시 간병 여부로 등급 구분</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 4 -->
+    <div class="step-wrap">
+      <div class="step-line">
+        <div class="step-num c4">4</div>
+        <div class="step-connector"></div>
+      </div>
+      <div class="step-body">
+        <div class="step-title">치유 후 급여 신청</div>
+        <div class="step-sub">치료 종결(치유) 후 장해·직업재활 급여</div>
+        <div class="row">
+          <div class="col">
+            <div class="card">
+              <div class="card-title">🦽 장해급여 <span class="badge badge-purple">1~14급</span></div>
+              <ul class="doc-list">
+                <li>장해급여청구서</li>
+                <li>장해진단서</li>
+                <li>방사선 검사 자료</li>
+                <li>진료기록부</li>
+              </ul>
+            </div>
+          </div>
+          <div class="col">
+            <div class="card">
+              <div class="card-title">💼 직업재활급여</div>
+              <ul class="doc-list">
+                <li>직업재활급여청구서</li>
+                <li>직업훈련 관련 서류</li>
+                <li>사업주 작성 서류 (복귀 프로그램)</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 5: 사망 -->
+    <div class="step-wrap">
+      <div class="step-line">
+        <div class="step-num c5">5</div>
+      </div>
+      <div class="step-body">
+        <div class="step-title">사망 시 유족급여 <span class="badge badge-red">유족</span></div>
+        <div class="step-sub">업무상 사망 → 유족이 직접 신청</div>
+        <div class="card">
+          <div class="card-title">📄 필요 서류</div>
+          <div class="row">
+            <div class="col">
+              <ul class="doc-list">
+                <li>유족급여청구서</li>
+                <li>사망진단서 또는 사체검안서</li>
+                <li>주민등록등본</li>
+              </ul>
+            </div>
+            <div class="col">
+              <ul class="doc-list">
+                <li>가족관계증명서</li>
+                <li>수급 자격자 확인 서류</li>
+                <li>장례비 청구서 (별도)</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /flow -->
+</div>
+
+<!-- ====== PANEL 2: 급여 종류 ====== -->
+<div id="panel-benefit" class="panel">
+  <div class="benefit-grid" id="benefitGrid">
+    <div class="benefit-card" onclick="toggleBenefit('b1')">
+      <div class="benefit-icon">🏥</div>
+      <div class="benefit-name">요양급여</div>
+      <div class="benefit-short">치료비 전액</div>
+    </div>
+    <div class="benefit-card" onclick="toggleBenefit('b2')">
+      <div class="benefit-icon">💸</div>
+      <div class="benefit-name">휴업급여</div>
+      <div class="benefit-short">평균임금 70%</div>
+    </div>
+    <div class="benefit-card" onclick="toggleBenefit('b3')">
+      <div class="benefit-icon">🦽</div>
+      <div class="benefit-name">장해급여</div>
+      <div class="benefit-short">장해 등급별 지급</div>
+    </div>
+    <div class="benefit-card" onclick="toggleBenefit('b4')">
+      <div class="benefit-icon">🛏</div>
+      <div class="benefit-name">간병급여</div>
+      <div class="benefit-short">간병 필요 시</div>
+    </div>
+    <div class="benefit-card" onclick="toggleBenefit('b5')">
+      <div class="benefit-icon">📊</div>
+      <div class="benefit-name">상병보상연금</div>
+      <div class="benefit-short">장기요양 대체급여</div>
+    </div>
+    <div class="benefit-card" onclick="toggleBenefit('b6')">
+      <div class="benefit-icon">👨‍👩‍👧</div>
+      <div class="benefit-name">유족급여</div>
+      <div class="benefit-short">사망 시 유족 지급</div>
+    </div>
+    <div class="benefit-card" onclick="toggleBenefit('b7')">
+      <div class="benefit-icon">⚰️</div>
+      <div class="benefit-name">장례비</div>
+      <div class="benefit-short">사망 시 장례 비용</div>
+    </div>
+    <div class="benefit-card" onclick="toggleBenefit('b8')">
+      <div class="benefit-icon">💼</div>
+      <div class="benefit-name">직업재활급여</div>
+      <div class="benefit-short">복직·훈련 지원</div>
+    </div>
+  </div>
+
+  <div class="benefit-detail" id="b1">
+    <b>요양급여</b> — 업무상 부상·질병을 치유하기 위한 의료 비용 전액 지원 (현물 급여)<br><br>
+    <b>지급 내용:</b> 진찰·검사, 약제·처치, 수술, 입원, 간호, 이송 등 치료 전 과정<br>
+    <b>신청 시기:</b> 재해 발생 후 즉시<br>
+    <b>주의:</b> 산재 지정 의료기관에서 치료받아야 하며, 지정 외 기관은 공단 승인 필요
+  </div>
+  <div class="benefit-detail" id="b2">
+    <b>휴업급여</b> — 요양으로 취업 못 한 기간의 생계 보전<br><br>
+    <b>지급액:</b> 1일 평균임금 × 70%<br>
+    <b>지급 기간:</b> 요양 기간 전체 (치유 시까지)<br>
+    <b>저소득 특례:</b> 저임금 근로자는 최저임금 기준으로 산정 적용 가능
+  </div>
+  <div class="benefit-detail" id="b3">
+    <b>장해급여</b> — 치유 후 신체에 장해가 남은 경우<br><br>
+    <b>장해 등급:</b> 1급(최중증) ~ 14급(경증)<br>
+    <b>지급 방식:</b> 1~7급 → 연금 또는 일시금 선택 / 8~14급 → 일시금<br>
+    <b>금액:</b> 등급별 평균임금 × 일수 기준 (1급: 평균임금 × 1,474일)
+  </div>
+  <div class="benefit-detail" id="b4">
+    <b>간병급여</b> — 치유 후에도 의학적으로 간병이 필요한 경우<br><br>
+    <b>구분:</b> 상시 간병 / 수시 간병<br>
+    <b>지급액 (2024 기준):</b> 상시 약 43,000원/일, 수시 약 28,000원/일<br>
+    <b>조건:</b> 신경계·정신계 장해 1~2급 또는 척수 손상 등 중증 장해
+  </div>
+  <div class="benefit-detail" id="b5">
+    <b>상병보상연금</b> — 장기 요양 시 휴업급여를 대체하는 급여<br><br>
+    <b>조건:</b> 요양 개시 후 2년 경과 + 중증요양 상태 (1~3급)<br>
+    <b>지급액:</b> 평균임금 × 등급별 일수 (1급: 313일, 2급: 277일, 3급: 245일)<br>
+    <b>효과:</b> 휴업급여보다 높은 금액 지급 (평균임금 70% 초과)
+  </div>
+  <div class="benefit-detail" id="b6">
+    <b>유족급여</b> — 업무상 사망 시 유족의 생계 보전<br><br>
+    <b>우선순위:</b> 배우자 → 자녀 → 부모 → 손자녀 → 조부모 → 형제자매<br>
+    <b>연금:</b> 기본금액(평균임금 × 47일) + 가산금(유족 수 × 평균임금 × 5일)<br>
+    <b>일시금:</b> 연금 수급 자격 없는 경우 평균임금 × 1,300일
+  </div>
+  <div class="benefit-detail" id="b7">
+    <b>장례비</b> — 업무상 사망 시 장례 비용 지원<br><br>
+    <b>지급액:</b> 평균임금 × 120일 (단, 최저·최고 금액 한도 있음)<br>
+    <b>신청인:</b> 실제 장례를 행한 자 (유족 아니어도 가능)<br>
+    <b>서류:</b> 장례비 청구서 + 사망진단서 + 장례 비용 영수증
+  </div>
+  <div class="benefit-detail" id="b8">
+    <b>직업재활급여</b> — 직장 복귀 및 직업 훈련 지원<br><br>
+    <b>종류:</b> 직장복귀지원금 / 직업훈련비용 / 직장적응훈련비<br>
+    <b>사업주 지원:</b> 재해 근로자 원직 복귀 시 지원금 지급<br>
+    <b>근로자 지원:</b> 직업훈련 참여 시 훈련비 + 훈련 수당 지급
+  </div>
+</div>
+
+<!-- ====== PANEL 3: 불복 절차 ====== -->
+<div id="panel-appeal" class="panel">
+  <div class="notice notice-red" style="margin-bottom:14px;">
+    ⚠️ <b>불승인 처분을 받은 경우</b> — 각 단계별 기한을 반드시 지켜야 합니다. 기한 초과 시 불복 권리가 소멸됩니다.
+  </div>
+
+  <div class="section-title">불복 절차 흐름</div>
+  <div class="appeal-flow" style="margin-bottom:20px;">
+    <div class="appeal-step" style="border-color:#ef4444;">
+      <div class="appeal-step-title">🚫 불승인 처분</div>
+      <div class="appeal-step-desc">근로복지공단 결정 통보</div>
+    </div>
+    <div class="appeal-arrow">→</div>
+    <div class="appeal-step">
+      <div class="appeal-step-title">① 심사청구</div>
+      <div class="appeal-step-deadline">90일 이내</div>
+      <div class="appeal-step-desc">근로복지공단 심사청구위원회</div>
+    </div>
+    <div class="appeal-arrow">→</div>
+    <div class="appeal-step">
+      <div class="appeal-step-title">② 재심사청구</div>
+      <div class="appeal-step-deadline">90일 이내</div>
+      <div class="appeal-step-desc">산업재해보상보험 재심사위원회</div>
+    </div>
+    <div class="appeal-arrow">→</div>
+    <div class="appeal-step" style="border-color:#7c3aed;">
+      <div class="appeal-step-title">③ 행정소송</div>
+      <div class="appeal-step-deadline">90일 이내</div>
+      <div class="appeal-step-desc">행정법원 제소</div>
+    </div>
+  </div>
+
+  <div class="notice notice-blue" style="margin-bottom:16px;">
+    💡 심사청구와 재심사청구는 선택적으로 진행 가능합니다. 바로 행정소송도 가능하나, 공단 처분 취소소송은 재심사청구 후 제기하는 것이 일반적입니다.
+  </div>
+
+  <div class="section-title">단계별 상세 정보</div>
+  <div class="row">
+    <div class="col">
+      <div class="card">
+        <div class="card-title">① 심사청구 서류</div>
+        <ul class="doc-list">
+          <li>심사청구서 (공단 서식)</li>
+          <li>불승인 처분 통지서 사본</li>
+          <li>추가 의학 소견서 (있는 경우)</li>
+          <li>새로운 증거 서류 일체</li>
+          <li>위임장 (대리인 선임 시)</li>
+        </ul>
+        <div style="margin-top:8px;font-size:11px;color:#6b7280;">처리: 접수 후 60일 이내 결정</div>
+      </div>
+    </div>
+    <div class="col">
+      <div class="card">
+        <div class="card-title">② 재심사청구 서류</div>
+        <ul class="doc-list">
+          <li>재심사청구서</li>
+          <li>심사청구 결정서 사본</li>
+          <li>원처분 관련 서류 일체</li>
+          <li>추가 의학적 소견</li>
+        </ul>
+        <div style="margin-top:8px;font-size:11px;color:#6b7280;">처리: 접수 후 60일 이내 결정 (연장 가능)</div>
+      </div>
+    </div>
+    <div class="col">
+      <div class="card">
+        <div class="card-title">③ 행정소송 서류</div>
+        <ul class="doc-list">
+          <li>행정소송 소장</li>
+          <li>재심사 결정서 사본</li>
+          <li>처분 근거 자료 일체</li>
+          <li>전문가 의학 감정 소견서</li>
+          <li>노무사·변호사 선임 권장</li>
+        </ul>
+        <div style="margin-top:8px;font-size:11px;color:#6b7280;">행정법원 → 고등법원 → 대법원 상고 가능</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-title" style="margin-top:16px;">불복 시 승인률 높이는 포인트</div>
+  <div class="card">
+    <ul class="doc-list" style="line-height:1.9;">
+      <li><b>업무 관련성 입증</b> — 작업 지시 기록, 근무 일지, 동료 진술서로 업무 기인성 강화</li>
+      <li><b>추가 의학 소견 확보</b> — 전문 병원의 2차 소견서 또는 감정 의뢰</li>
+      <li><b>CCTV·사진 증거</b> — 초기에 확보하지 못했다면 추가 수집 시도</li>
+      <li><b>노무사·변호사 선임</b> — 심사청구 단계부터 전문가 조력 권장</li>
+      <li><b>동종 인정 사례 제출</b> — 유사 사고 승인 판례·사례 수집하여 첨부</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ====== PANEL 4: 대상별 차이 ====== -->
+<div id="panel-diff" class="panel">
+  <div class="diff-tabs">
+    <div class="diff-tab active" onclick="showDiff('general')">일반 근로자</div>
+    <div class="diff-tab" onclick="showDiff('construction')">건설업</div>
+    <div class="diff-tab" onclick="showDiff('special')">특수형태근로 (특고)</div>
+    <div class="diff-tab" onclick="showDiff('artist')">예술인</div>
+    <div class="diff-tab" onclick="showDiff('foreign')">외국인 근로자</div>
+  </div>
+
+  <!-- 일반 -->
+  <div class="diff-panel active" id="diff-general">
+    <div class="card">
+      <div class="card-title">📋 일반 근로자 (제조업·서비스업 등)</div>
+      <table class="compare-table">
+        <tr><th>항목</th><th>내용</th></tr>
+        <tr><td>적용 기준</td><td>근로자 1인 이상 사업장 (대부분 당연 적용)<br><span style="font-size:11px;color:#6b7280;">단, 5인 미만 농업·임업·어업·수렵업 일부 제외</span></td></tr>
+        <tr><td>보험료 부담</td><td>사업주 전액 부담</td></tr>
+        <tr><td>신청 방법</td><td>근로복지공단 지사 방문 / 토탈서비스 온라인 / 의료기관 대행</td></tr>
+        <tr><td>사업주 확인</td><td>필요하나 거부 시에도 신청 가능</td></tr>
+        <tr><td>특이사항</td><td>없음 — 기본 절차 그대로 적용</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- 건설업 -->
+  <div class="diff-panel" id="diff-construction">
+    <div class="card">
+      <div class="card-title">🏗️ 건설업 근로자</div>
+      <table class="compare-table">
+        <tr><th>항목</th><th>내용</th></tr>
+        <tr><td>적용 기준</td><td>공사금액 2천만 원 이상 <b>또는</b> 연면적 100㎡ 초과 건축물 공사<br>→ 근로자 수 무관, 규모만으로 적용</td></tr>
+        <tr><td>일용직·현장직</td><td>동일하게 산재보험 적용, 고용기간 무관</td></tr>
+        <tr><td>하도급</td><td>원도급 사업주가 하수급인 근로자 포함 보험 가입 (원칙)</td></tr>
+        <tr><td>특이사항</td><td>현장별 보험 관리, 자진신고 의무 있음<br>건설 일용직은 근무 이력 증명 어려울 수 있음 → 임금대장·출퇴근 기록 확보 필수</td></tr>
+      </table>
+      <div class="notice" style="margin-top:10px;">⚠️ 건설 일용직은 사업주 확인이 어려운 경우 많으므로 현장 근무 증거(임금대장, 사진, 동료 진술 등)를 미리 확보해야 합니다.</div>
+    </div>
+  </div>
+
+  <!-- 특고 -->
+  <div class="diff-panel" id="diff-special">
+    <div class="card">
+      <div class="card-title">🚴 특수형태근로종사자 (노무제공자)</div>
+      <div style="font-size:12px;color:#6b7280;margin-bottom:10px;">택배기사, 배달라이더, 학습지 교사, 골프장 캐디, 화물차주, 보험설계사, 가전제품 설치기사 등</div>
+      <table class="compare-table">
+        <tr><th>항목</th><th>내용</th></tr>
+        <tr><td>보험료 부담</td><td>사업주 50% + 본인 50% 분담</td></tr>
+        <tr><td>가입 방식</td><td>별도 서식으로 입직·이직 신고 (일반 근로자와 다름)</td></tr>
+        <tr><td>적용 제외 신청</td><td>본인이 원할 경우 적용 제외 신청 가능<br>(단, 전속성 요건 충족 시 강제 적용)</td></tr>
+        <tr><td>신청 절차</td><td>재해 발생 시 신청 절차는 일반 근로자와 동일</td></tr>
+        <tr><td>주의사항</td><td>전속성·지휘감독 관계 입증이 핵심<br>다수 플랫폼 동시 활동 시 적용 제외될 수 있음</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- 예술인 -->
+  <div class="diff-panel" id="diff-artist">
+    <div class="card">
+      <div class="card-title">🎨 예술인</div>
+      <div style="font-size:12px;color:#6b7280;margin-bottom:10px;">문화예술용역 관련 계약을 맺은 예술인 (2020년 12월 이후 적용)</div>
+      <table class="compare-table">
+        <tr><th>항목</th><th>내용</th></tr>
+        <tr><td>적용 기준</td><td>문화예술용역 계약 → 당연 적용<br>월 보수 50만 원 미만은 적용 제외 신청 가능</td></tr>
+        <tr><td>보험료 부담</td><td>문화예술사업주 50% + 예술인 50%</td></tr>
+        <tr><td>신청 포털</td><td>예술인 산재보험 전용 포털 (kawf.kr) 별도 운영</td></tr>
+        <tr><td>신청 절차</td><td>일반 근로자와 동일하나 계약서 등 용역 증빙 서류 추가 필요</td></tr>
+        <tr><td>특이사항</td><td>프리랜서 형태 계약이 많아 업무 중 재해 입증이 관건</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- 외국인 -->
+  <div class="diff-panel" id="diff-foreign">
+    <div class="card">
+      <div class="card-title">🌏 외국인 근로자</div>
+      <table class="compare-table">
+        <tr><th>항목</th><th>내용</th></tr>
+        <tr><td>적용 원칙</td><td><b>체류자격·합법 여부 무관하게 내국인과 동일 적용</b><br>불법체류자도 근로자로 인정 시 산재보상 가능 (판례 확립)</td></tr>
+        <tr><td>미가입 사업장</td><td>사업장이 산재보험 미가입이어도 근로복지공단이 직권 조사 → 신청 가능</td></tr>
+        <tr><td>추가 서류</td><td>외국인등록증 또는 여권 사본, 체류자격 관련 서류 (합법 체류 시)</td></tr>
+        <tr><td>E-9 (고용허가제)</td><td>출국만기보험·귀국비용보험 등 전용 보험 별도 존재<br>산재보험과 병행 수령 가능</td></tr>
+        <tr><td>언어 지원</td><td>근로복지공단 다국어 상담 (영어·중국어·베트남어 등)<br>고용노동부 지방관서 통역지원 서비스<br>지자체 외국인근로자지원센터</td></tr>
+      </table>
+      <div class="notice notice-green" style="margin-top:10px;">
+        ✅ <b>불법체류자도 신청 가능</b> — 산재 신청 시 체류자격 단속 대상이 되지 않습니다. 산재 신청 자체가 출입국 관련 불이익으로 이어지지 않습니다.
+      </div>
+      <div class="notice notice-red" style="margin-top:8px;">
+        ⚠️ 현실적으로 사업주 압박이나 언어 장벽으로 포기하는 경우가 많습니다. 재해 즉시 외국인근로자지원센터 또는 노무사 상담을 권장합니다.
+      </div>
+    </div>
+  </div>
+
+</div><!-- /panel-diff -->
+
+<script>
+  function showTab(id) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('panel-' + id).classList.add('active');
+    event.target.classList.add('active');
+  }
+
+  function toggleBenefit(id) {
+    const detail = document.getElementById(id);
+    const card = event.currentTarget;
+    const isActive = detail.classList.contains('active');
+    // close all
+    document.querySelectorAll('.benefit-detail').forEach(d => d.classList.remove('active'));
+    document.querySelectorAll('.benefit-card').forEach(c => c.classList.remove('active'));
+    if (!isActive) {
+      detail.classList.add('active');
+      card.classList.add('active');
+    }
+  }
+
+  function showDiff(id) {
+    document.querySelectorAll('.diff-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.diff-tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('diff-' + id).classList.add('active');
+    event.target.classList.add('active');
+  }
+</script>
+</body>
+</html>
